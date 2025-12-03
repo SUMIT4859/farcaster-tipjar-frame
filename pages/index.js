@@ -5,7 +5,7 @@ import { ethers } from "ethers";
 import TipJarAbi from "../lib/TipJarAbi.json";
 
 const CONTRACT = "0x083C4B91577a28cD96DC948952e12D6f5390E13C"; // your contract address
-const SITE_URL = "http://localhost:3000"; // keep localhost for local testing; update to your Vercel URL after deploy
+const SITE_URL = "https://farcaster-tipjar-frame.vercel.app/"; // keep localhost for local testing; update to your Vercel URL after deploy
 
 export default function Home() {
   const [msg, setMsg] = useState("");

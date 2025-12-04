@@ -5,7 +5,8 @@ import { ethers } from "ethers";
 import TipJarAbi from "../lib/TipJarAbi.json";
 
 const CONTRACT = "0x083C4B91577a28cD96DC948952e12D6f5390E13C"; // your contract address
-const SITE_URL = "https://farcaster-tipjar-frame.vercel.app/"; // keep localhost for local testing; update to your Vercel URL after deploy
+const SITE_URL = "https://farcaster-tipjar-frame.vercel.app";   // your Vercel URL (no trailing slash)
+const DEFAULT_TIP = "0.000001"; // fallback if user leaves amount empty
 
 export default function Home() {
   const [msg, setMsg] = useState("");
@@ -13,6 +14,7 @@ export default function Home() {
   const [connected, setConnected] = useState(false);
   const [account, setAccount] = useState("");
   const [txHash, setTxHash] = useState("");
+  const [amount, setAmount] = useState(DEFAULT_TIP); // user-set tip amount
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
@@ -34,7 +36,12 @@ export default function Home() {
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       setAccount(accounts[0]);
       setConnected(true);
-      setStatus("Wallet connected: " + accounts[0].slice(0,6) + "..." + accounts[0].slice(-4));
+      setStatus(
+        "Wallet connected: " +
+          accounts[0].slice(0, 6) +
+          "..." +
+          accounts[0].slice(-4)
+      );
     } catch (e) {
       setStatus("Connect error: " + (e?.message || e));
     }
@@ -43,6 +50,14 @@ export default function Home() {
   async function sendTip() {
     try {
       if (!connected) return alert("Connect your wallet first.");
+
+      const finalAmount = (amount || DEFAULT_TIP).trim();
+
+      // basic validation
+      if (!finalAmount || Number(finalAmount) <= 0) {
+        return alert("Please enter a valid amount in ETH.");
+      }
+
       setStatus("Sending transaction...");
       setTxHash("");
 
@@ -50,12 +65,10 @@ export default function Home() {
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT, TipJarAbi, signer);
 
-      // amount to send (adjust as you prefer). Example here uses 0.00002 ETH (~₹5).
-      const valueToSend = "0.000001";
+      const tx = await contract.tip(msg || "Thanks!", {
+        value: ethers.parseEther(finalAmount),
+      });
 
-      const tx = await contract.tip(msg || "Thanks!", { value: ethers.parseEther(valueToSend) });
-
-      // store tx hash immediately so user can inspect while waiting
       setTxHash(tx.hash);
       setStatus("Waiting for confirmation...");
 
@@ -73,78 +86,238 @@ export default function Home() {
         <title>TipJar</title>
 
         {/* Modern miniapp meta (Farcaster) */}
-        <meta name="fc:miniapp" content={JSON.stringify({
-          version: "1",
-          imageUrl: `${SITE_URL}/splash.png`,
-          button: {
-            title: "Open TipJar",
-            action: { type: "launch_frame", url: `${SITE_URL}` },
-            name: "TipJar",
-            splashImageUrl: `${SITE_URL}/splash.png`,
-            splashBackgroundColor: "#ffffff"
-          }
-        })} />
+        <meta
+          name="fc:miniapp"
+          content={JSON.stringify({
+            version: "1",
+            imageUrl: `${SITE_URL}/splash.png`,
+            button: {
+              title: "Open TipJar",
+              action: { type: "launch_frame", url: `${SITE_URL}` },
+              name: "TipJar",
+              splashImageUrl: `${SITE_URL}/splash.png`,
+              splashBackgroundColor: "#ffffff",
+            },
+          })}
+        />
 
         {/* Legacy fc:frame tag for older clients */}
-        <meta name="fc:frame" content={JSON.stringify({
-          version: "vNext",
-          image: `${SITE_URL}/splash.png`,
-          "button:1": "Open TipJar",
-          "action_url": `${SITE_URL}/api/action`
-        })} />
+        <meta
+          name="fc:frame"
+          content={JSON.stringify({
+            version: "vNext",
+            image: `${SITE_URL}/splash.png`,
+            "button:1": "Open TipJar",
+            action_url: `${SITE_URL}/api/action`,
+          })}
+        />
       </Head>
 
-      <main style={{ padding: 24, fontFamily: "Inter, Arial, sans-serif", maxWidth: 720, margin: "0 auto" }}>
-        <h1 style={{ marginBottom: 6 }}>TipJar</h1>
-        <p style={{ color: "#555", marginTop: 0 }}>Contract: <code>{CONTRACT}</code></p>
+      {/* Full-page background */}
+      <div
+        style={{
+          minHeight: "100vh",
+          margin: 0,
+          padding: 0,
+          background:
+            "radial-gradient(circle at top, #0f172a 0, #020617 45%, #000000 100%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily:
+            "system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
+        }}
+      >
+        <main style={{ width: "100%", maxWidth: 600, padding: 16 }}>
+          <div
+            style={{
+              borderRadius: 20,
+              padding: 24,
+              background:
+                "linear-gradient(145deg, rgba(15,23,42,0.9), rgba(15,23,42,0.7))",
+              boxShadow:
+                "0 24px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(148,163,184,0.2)",
+              border: "1px solid rgba(148,163,184,0.25)",
+              color: "#e5e7eb",
+            }}
+          >
+            <h1 style={{ marginBottom: 6, fontSize: 24 }}>TipJar · Base</h1>
+            <p style={{ color: "#9ca3af", marginTop: 0, fontSize: 13 }}>
+              Send a tiny onchain tip on Base in one click.
+            </p>
 
-        {!connected ? (
-          <div>
-            <button onClick={connect} style={{ padding: "10px 16px", borderRadius: 8 }}>Connect Wallet</button>
-            <p style={{ color: "#777", marginTop: 8 }}>Connect MetaMask (Base network) to send a small tip.</p>
-          </div>
-        ) : (
-          <div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                placeholder="Message (optional)"
-                value={msg}
-                onChange={(e) => setMsg(e.target.value)}
-                style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
-              />
-              <button onClick={sendTip} style={{ padding: "10px 14px", borderRadius: 8 }}>
-                Send 0.000001 ETH
-              </button>
-            </div>
+            <p
+              style={{
+                color: "#a5b4fc",
+                fontSize: 12,
+                marginTop: 10,
+                marginBottom: 18,
+              }}
+            >
+              Contract:{" "}
+              <a
+                href={`https://basescan.org/address/${CONTRACT}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#e5e7eb", textDecoration: "none" }}
+              >
+                <code>
+                  {CONTRACT.slice(0, 10)}...{CONTRACT.slice(-6)}
+                </code>
+              </a>
+            </p>
 
-            <div style={{ marginTop: 10, color: "#333" }}>{status}</div>
-
-            {/* Clickable tx hash */}
-            {txHash && (
-              <div style={{ marginTop: 8 }}>
-                Tx:&nbsp;
-                <a
-                  href={`https://basescan.org/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={txHash}
-                  style={{ color: "#0366d6" }}
+            {!connected ? (
+              <div>
+                <button
+                  onClick={connect}
+                  style={{
+                    padding: "12px 18px",
+                    borderRadius: 999,
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: 14,
+                    background:
+                      "linear-gradient(135deg, #22c55e, #38bdf8, #6366f1)",
+                    color: "#020617",
+                    width: "100%",
+                  }}
                 >
-                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
-                </a>
+                  Connect wallet to tip
+                </button>
+                <p
+                  style={{
+                    color: "#9ca3af",
+                    marginTop: 10,
+                    fontSize: 12,
+                    textAlign: "center",
+                  }}
+                >
+                  Uses MetaMask on{" "}
+                  <span style={{ color: "#38bdf8" }}>Base Mainnet</span>.
+                </p>
+              </div>
+            ) : (
+              <div>
+                {/* Amount + message row */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    marginTop: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      min="0"
+                      placeholder={DEFAULT_TIP}
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      style={{
+                        width: "40%",
+                        padding: 10,
+                        borderRadius: 999,
+                        border: "1px solid rgba(148,163,184,0.7)",
+                        backgroundColor: "rgba(15,23,42,0.8)",
+                        color: "#e5e7eb",
+                        fontSize: 13,
+                      }}
+                    />
+                    <input
+                      placeholder="Message (optional)"
+                      value={msg}
+                      onChange={(e) => setMsg(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: 10,
+                        borderRadius: 999,
+                        border: "1px solid rgba(148,163,184,0.7)",
+                        backgroundColor: "rgba(15,23,42,0.8)",
+                        color: "#e5e7eb",
+                        fontSize: 13,
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    onClick={sendTip}
+                    style={{
+                      padding: "10px 16px",
+                      borderRadius: 999,
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      background:
+                        "linear-gradient(135deg, #38bdf8, #6366f1)",
+                      color: "#f9fafb",
+                      whiteSpace: "nowrap",
+                      width: "100%",
+                    }}
+                  >
+                    Send {amount || DEFAULT_TIP} ETH
+                  </button>
+                </div>
+
+                {/* Status box */}
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 10,
+                    borderRadius: 14,
+                    backgroundColor: "rgba(15,23,42,0.9)",
+                    border: "1px solid rgba(55,65,81,0.7)",
+                    fontSize: 12,
+                  }}
+                >
+                  <div> Status: {status || "Idle"} </div>
+                  {txHash && (
+                    <div style={{ marginTop: 4 }}>
+                      Tx:&nbsp;
+                      <a
+                        href={`https://basescan.org/tx/${txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={txHash}
+                        style={{ color: "#38bdf8", textDecoration: "none" }}
+                      >
+                        {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                      </a>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 11,
+                      color: "#9ca3af",
+                    }}
+                  >
+                    Connected:{" "}
+                    <span style={{ fontFamily: "monospace", color: "#e5e7eb" }}>
+                      {account.slice(0, 6)}...{account.slice(-4)}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
 
-            <div style={{ marginTop: 12, fontSize: 13, color: "#666" }}>
-              Connected: {account}
-            </div>
+            <footer
+              style={{
+                marginTop: 18,
+                color: "#9ca3af",
+                fontSize: 11,
+                textAlign: "right",
+              }}
+            >
+              Built on Base · Farcaster-ready Frame
+            </footer>
           </div>
-        )}
-
-        <footer style={{ marginTop: 28, color: "#888", fontSize: 13 }}>
-          Built as a Farcaster Frame deploy & share on Warpcast. Contract verified on Base.
-        </footer>
-      </main>
+        </main>
+      </div>
     </>
   );
 }

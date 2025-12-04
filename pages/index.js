@@ -33,7 +33,9 @@ export default function Home() {
   async function connect() {
     try {
       if (!window.ethereum) return alert("Please install MetaMask.");
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
       setAccount(accounts[0]);
       setConnected(true);
       setStatus(
@@ -52,8 +54,6 @@ export default function Home() {
       if (!connected) return alert("Connect your wallet first.");
 
       const finalAmount = (amount || DEFAULT_TIP).trim();
-
-      // basic validation
       if (!finalAmount || Number(finalAmount) <= 0) {
         return alert("Please enter a valid amount in ETH.");
       }
@@ -113,7 +113,7 @@ export default function Home() {
         />
       </Head>
 
-      {/* Full-page background */}
+      {/* Full-page background = premium CSS */}
       <div
         style={{
           minHeight: "100vh",
@@ -200,7 +200,7 @@ export default function Home() {
               </div>
             ) : (
               <div>
-                {/* Amount + message row */}
+                {/* Amount + message row = manual amount system */}
                 <div
                   style={{
                     display: "flex",

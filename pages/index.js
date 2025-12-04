@@ -1,24 +1,24 @@
-// pages/index.js
+// PREMIUM VERSION v1
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import { ethers } from "ethers";
 import TipJarAbi from "../lib/TipJarAbi.json";
 
-const CONTRACT = "0x083C4B91577a28cD96DC948952e12D6f5390E13C"; // your contract address
-const SITE_URL = "https://farcaster-tipjar-frame.vercel.app";   // your Vercel URL (no trailing slash)
-const DEFAULT_TIP = "0.000001"; // fallback if user leaves amount empty
+const CONTRACT = "0x083C4B91577a28cD96DC948952e12D6f5390E13C";
+const SITE_URL = "https://farcaster-tipjar-frame.vercel.app";
+const DEFAULT_TIP = "0.000001";
 
 export default function Home() {
   const [msg, setMsg] = useState("");
+  const [amount, setAmount] = useState(DEFAULT_TIP);
   const [status, setStatus] = useState("");
   const [connected, setConnected] = useState(false);
   const [account, setAccount] = useState("");
   const [txHash, setTxHash] = useState("");
-  const [amount, setAmount] = useState(DEFAULT_TIP); // user-set tip amount
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
-      window.ethereum.on?.("accountsChanged", (accs) => {
+      window.ethereum.on("accountsChanged", (accs) => {
         if (accs && accs.length) {
           setAccount(accs[0]);
           setConnected(true);
@@ -38,12 +38,7 @@ export default function Home() {
       });
       setAccount(accounts[0]);
       setConnected(true);
-      setStatus(
-        "Wallet connected: " +
-          accounts[0].slice(0, 6) +
-          "..." +
-          accounts[0].slice(-4)
-      );
+      setStatus("Wallet connected ✅");
     } catch (e) {
       setStatus("Connect error: " + (e?.message || e));
     }
@@ -71,7 +66,6 @@ export default function Home() {
 
       setTxHash(tx.hash);
       setStatus("Waiting for confirmation...");
-
       await tx.wait();
       setStatus("Tip sent ✅ (tx confirmed)");
       setMsg("");
@@ -83,9 +77,8 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>TipJar</title>
+        <title>TipJar · Base</title>
 
-        {/* Modern miniapp meta (Farcaster) */}
         <meta
           name="fc:miniapp"
           content={JSON.stringify({
@@ -101,7 +94,6 @@ export default function Home() {
           })}
         />
 
-        {/* Legacy fc:frame tag for older clients */}
         <meta
           name="fc:frame"
           content={JSON.stringify({
@@ -113,7 +105,7 @@ export default function Home() {
         />
       </Head>
 
-      {/* Full-page background = premium CSS */}
+      {/* FULL PAGE BACKGROUND */}
       <div
         style={{
           minHeight: "100vh",
@@ -129,6 +121,7 @@ export default function Home() {
         }}
       >
         <main style={{ width: "100%", maxWidth: 600, padding: 16 }}>
+          {/* CARD */}
           <div
             style={{
               borderRadius: 20,
@@ -141,7 +134,10 @@ export default function Home() {
               color: "#e5e7eb",
             }}
           >
-            <h1 style={{ marginBottom: 6, fontSize: 24 }}>TipJar · Base</h1>
+            {/* HEADER */}
+            <h1 style={{ marginBottom: 4, fontSize: 28, fontWeight: 700 }}>
+              TipJar · Base
+            </h1>
             <p style={{ color: "#9ca3af", marginTop: 0, fontSize: 13 }}>
               Send a tiny onchain tip on Base in one click.
             </p>
@@ -150,7 +146,7 @@ export default function Home() {
               style={{
                 color: "#a5b4fc",
                 fontSize: 12,
-                marginTop: 10,
+                marginTop: 8,
                 marginBottom: 18,
               }}
             >
@@ -167,6 +163,7 @@ export default function Home() {
               </a>
             </p>
 
+            {/* BODY */}
             {!connected ? (
               <div>
                 <button
@@ -200,7 +197,7 @@ export default function Home() {
               </div>
             ) : (
               <div>
-                {/* Amount + message row = manual amount system */}
+                {/* AMOUNT + MESSAGE */}
                 <div
                   style={{
                     display: "flex",
@@ -255,7 +252,6 @@ export default function Home() {
                       background:
                         "linear-gradient(135deg, #38bdf8, #6366f1)",
                       color: "#f9fafb",
-                      whiteSpace: "nowrap",
                       width: "100%",
                     }}
                   >
@@ -263,7 +259,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Status box */}
+                {/* STATUS BOX */}
                 <div
                   style={{
                     marginTop: 12,
